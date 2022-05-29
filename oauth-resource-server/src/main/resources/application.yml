@@ -5,11 +5,22 @@ server:
 
 ####### resource server configuration properties
 spring:
-  jpa:
-    defer-datasource-initialization: true
+#  jpa:
+#    defer-datasource-initialization: true
+  mongodb:
+    embedded:
+      version: 4.4.9
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8083/auth/realms/baeldung
           jwk-set-uri: http://localhost:8083/auth/realms/baeldung/protocol/openid-connect/certs
+logging:
+  level:
+    root: DEBUG
+    org:
+          springframework:
+            web: debug
+######################### my variables #######################################
+NUM_THREADS: 4
