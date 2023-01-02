@@ -2,6 +2,8 @@ server:
   port: 8081
   servlet:
     context-path: /resource-server
+  tomcat:
+    max-swallow-size: 90MB
 
 ####### resource server configuration properties
 spring:
@@ -14,6 +16,10 @@ spring:
         jwt:
           issuer-uri: http://localhost:8083/auth/realms/baeldung
           jwk-set-uri: http://localhost:8083/auth/realms/baeldung/protocol/openid-connect/certs
+  servlet:
+    multipart:
+      max-file-size: 90MB
+      max-request-size: 90MB
 logging:
   level:
     root: DEBUG
