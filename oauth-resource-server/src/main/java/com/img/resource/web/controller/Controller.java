@@ -1,18 +1,19 @@
 package com.img.resource.web.controller;
 
 import com.img.resource.filter.Filters;
-import com.img.resource.persistence.model.ImageUploadResponse;
-import com.img.resource.persistence.model.ImgBin;
-import com.img.resource.service.ImageFormatIO;
 import com.img.resource.persistence.repository.ImageRepository;
+import com.img.resource.service.ImageFormatIO;
 import com.img.resource.service.ImgSrv;
 import com.img.resource.utils.Image;
+import com.img.resource.web.dto.LogDTO;
 import lombok.extern.slf4j.Slf4j;
-import org.bson.types.Binary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
@@ -28,8 +29,6 @@ import java.util.Locale;
 @RestController
 @RequestMapping("/api/")
 public class Controller {
-//    private static final Logger log = LogManager.getLogger(Controller.class);
-    private static int imgID = 0;
     private final ImageRepository imageRepository;
     private final ImgSrv imgSrv;
     private final ImageFormatIO imageFormatIO;
@@ -84,8 +83,9 @@ public class Controller {
     }
 
     @CrossOrigin("http://localhost:8089")
-    @GetMapping(value = "/test")
-    public ResponseEntity<String> filterImage() {
+    @PostMapping(value = "/test")
+    public ResponseEntity<String> filterImage(LogDTO inputLine) {
+        log.debug(inputLine.line());
         return ResponseEntity.ok("test");
     }
 

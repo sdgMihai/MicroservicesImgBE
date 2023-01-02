@@ -3,6 +3,7 @@ package com.img.resource.spring;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
 @Configuration
@@ -18,6 +19,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .hasAuthority("SCOPE_read")
                 .antMatchers(HttpMethod.POST, "/api/filter")
                 .hasAuthority("SCOPE_write")
+                .antMatchers(HttpMethod.POST, "/api/test")
+                .hasAuthority("SCOPE_write")
                 .anyRequest()
                 .authenticated()
                 .and()
@@ -26,6 +29,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 ;
     }//@formatter:on
 
+    @Override
+    public void configure(WebSecurity web) {
+        web.ignoring().antMatchers("/api/test");
+    }
 //    @Bean
 //    CorsConfigurationSource corsConfigurationSource() {
 //        CorsConfiguration configuration = new CorsConfiguration();
