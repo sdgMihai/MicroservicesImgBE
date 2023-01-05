@@ -28,3 +28,4 @@ logging:
             web: debug
 ######################### my variables #######################################
 NUM_THREADS: 4
+base_fe_url: http://localhost:8089/
