@@ -1,12 +1,15 @@
 package com.img.resource.filter;
 
 import com.img.resource.utils.Image;
+import com.img.resource.utils.ImageUtils;
 import com.img.resource.utils.Pixel;
-import com.img.resource.utils.ThreadSpecificDataT;
+import org.springframework.data.util.Pair;
 
-import java.util.concurrent.BrokenBarrierException;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
-public class GradientFilter extends Filter {
+public class GradientFilter implements Filter {
     public float[][] theta; /* place to save theta calculation */
     public int thetaHeight;
     public int thetaWidth;
@@ -18,57 +21,53 @@ public class GradientFilter extends Filter {
             {0, 0, 0},
             {-1, -2, -1}};
 
-    private static float gMax = -3.40282347e+38F;
-    private static float[][] Ix, Iy, auxTheta;
-
-
-    public GradientFilter() {
-        this.filter_additional_data = null;
-    }
-
-    public GradientFilter(FilterAdditionalData filter_additional_data) {
-        this.filter_additional_data = filter_additional_data;
-    }
+    private float[][] Ix;
+    private float[][] Iy;
 
     /**
-     * @param image    referinta catre imagine
-     * @param newImage referinta catre obiectul tip Image
-     *                 care va contine imaginea rezultata in urma
-     *                 aplicarii filtrului.
+     * @param in          input image reference.
+     * @param out         output image reference.
+     * @param PARALLELISM integer value denoting the number of task running in parallel.
      */
     @Override
-    public void applyFilter(Image image, Image newImage) throws BrokenBarrierException, InterruptedException {
-        ThreadSpecificDataT tData = (ThreadSpecificDataT) filter_additional_data;
-        int slice = (image.height - 2) / tData.NUM_THREADS;//imaginea va avea un rand de pixeli deasupra si unul dedesubt
-        //de aici '-2' din ecuatie
-        int start = Math.max(1, tData.threadID * slice);
-        int stop = (tData.threadID + 1) * slice;
-        if (tData.threadID + 1 == tData.NUM_THREADS) {
-            stop = Math.max((tData.threadID + 1) * slice, image.height - 1);
+    public void applyFilter(Image in, Image out, final int PARALLELISM) {
+        Ix = new float[in.height][];
+        Iy = new float[in.height][];
+        theta = new float[in.height][];
+
+        for (int i = 0; i < in.height; ++i) {
+            Ix[i] = new float[in.width];
+            Iy[i] = new float[in.width];
+            theta[i] = new float[in.width];
         }
 
-        if (tData.threadID == 0) {
-            Ix = new float[image.height][];
-            Iy = new float[image.height][];
-            auxTheta = new float[image.height][];
+        this.thetaHeight = in.height;
+        this.thetaWidth = in.width;
 
-            for (int i = 0; i < image.height; ++i) {
-                Ix[i] = new float[image.width];
-                Iy[i] = new float[image.width];
-                auxTheta[i] = new float[image.width];
-            }
+        // ph1
+        CompletableFuture<Float>[] partialFilters = new CompletableFuture[PARALLELISM];
+        Pair<Integer, Integer>[] ranges = ImageUtils.getRange(PARALLELISM, in.height);
+        for (int i = 0; i < PARALLELISM; i++) {
+            int start = ranges[i].getFirst();
+            int stop = ranges[i].getSecond();
+            partialFilters[i] = CompletableFuture.supplyAsync(() -> applyFilterPh1(in, out, start, stop));
         }
-        this.thetaHeight = image.height;
-        this.thetaWidth = image.width;
+        final Optional<Float> gMax = Stream.of(partialFilters)
+                .map(CompletableFuture::join)
+                .max(Float::compareTo);
+        // ph2
+        CompletableFuture<Void>[] partialFilters2 = new CompletableFuture[PARALLELISM];
+        for (int i = 0; i < PARALLELISM; i++) {
+            int start = ranges[i].getFirst();
+            int stop = ranges[i].getSecond();
 
-        tData.barrier.await();
-        this.theta = auxTheta;
-        tData.barrier.await();
+            partialFilters2[i] = CompletableFuture.runAsync(
+                    () -> applyFilterPh2(in, out, start, stop, gMax.get()));
+        }
+        CompletableFuture.allOf(partialFilters2).join();
+    }
 
-
-        // prioritize gc to deallocate auxTheta
-        System.gc();
-
+    public float applyFilterPh1(Image image, Image newImage, int start, int stop) {
         // 1. Se aplica kernelul Gx pe imagine si se obtine Ix
         for (int i = start; i < stop; ++i) {
             for (int j = 1; j < image.width - 1; ++j) {
@@ -114,12 +113,11 @@ public class GradientFilter extends Filter {
                 }
             }
         }
+        return threadgMax;
+    }
 
-        synchronized (tData.mutex) {
-            gMax = Math.max(gMax, threadgMax);
-        }
-        tData.barrier.await();
 
+    public void applyFilterPh2(Image image, Image newImage, int start, int stop, float gMax) {
         // 4. Se calculeaza G = G / G.max() * 255
         for (int i = start; i < stop; ++i) {
             for (int j = 1; j < image.width - 1; ++j) {
@@ -130,10 +128,5 @@ public class GradientFilter extends Filter {
                 newImage.matrix[i][j] = new Pixel((char) gray, (char) gray, (char) gray, image.matrix[i][j].a);
             }
         }
-
-        tData.barrier.await();
-
-        // deallocate Ix &Iy
-        System.gc();
     }
 }

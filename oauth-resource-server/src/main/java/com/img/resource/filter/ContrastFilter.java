@@ -2,41 +2,29 @@ package com.img.resource.filter;
 
 import com.img.resource.utils.Image;
 import com.img.resource.utils.Pixel;
-import com.img.resource.utils.ThreadSpecificDataT;
 
 
-public class ContrastFilter extends Filter {
-    // intre -128 si 128
+public class ContrastFilter extends AbstractFilter {
     private final float contrast;
 
     /**
      * constructor
      *
-     * @param contrast
+     * @param contrast value between -128 and 128
      */
-    public ContrastFilter(float contrast, FilterAdditionalData filter_additional_data) {
+    public ContrastFilter(float contrast) {
         this.contrast = contrast;
-        this.filter_additional_data = filter_additional_data;
     }
 
     /**
-     * @param image    referinta catre imagine
-     * @param newImage referinta catre obiectul tip Image
-     *                 care va contine imaginea rezultata in urma
-     *                 aplicarii filtrului.
+     * @param image    input image reference.
+     * @param newImage output image reference.
+     * @param start    first line to be processed from input image.
+     * @param stop     past last line to be processed from input image.
      */
-    @Override
-    public void applyFilter(Image image, Image newImage) {
-        ThreadSpecificDataT tData = (ThreadSpecificDataT) filter_additional_data;
-        int slice = (image.height - 2) / tData.NUM_THREADS;//imaginea va avea un rand de pixeli deasupra si unul dedesubt
-        //de aici '-2' din ecuatie
-        int start = Math.max(1, tData.threadID * slice);
-        int stop = (tData.threadID + 1) * slice;
-        if (tData.threadID + 1 == tData.NUM_THREADS) {
-            stop = Math.max((tData.threadID + 1) * slice, image.height - 1);
-        }
+    public void applyFilterPh1(Image image, Image newImage, int start, int stop) {
 
-        float factor = (float)  (259 * (this.contrast + 255.) / (255. * (259. - this.contrast)));
+        float factor = (float) (259 * (this.contrast + 255.) / (255. * (259. - this.contrast)));
         for (int i = start; i < stop; ++i) {
             for (int j = 1; j < image.width - 1; ++j) {
                 Pixel newPixel = new Pixel();

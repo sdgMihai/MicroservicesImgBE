@@ -1,17 +1,13 @@
 package com.img.resource.web.controller;
 
-import com.google.common.util.concurrent.RateLimiter;
-import com.img.resource.filter.Filters;
-import com.img.resource.persistence.repository.ImageRepository;
 import com.img.resource.service.ImageFormatIO;
 import com.img.resource.service.ImgSrv;
 import com.img.resource.utils.Image;
-import com.img.resource.web.dto.LogDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,73 +19,90 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/")
 public class Controller {
-    private final ImageRepository imageRepository;
     private final ImgSrv imgSrv;
     private final ImageFormatIO imageFormatIO;
-    private final RateLimiter r;
 
     @Autowired
-    public Controller(ImageRepository imageRepository, ImgSrv imgSrv, ImageFormatIO imageFormatIO) {
-        this.imageRepository = imageRepository;
+    public Controller(ImgSrv imgSrv, ImageFormatIO imageFormatIO) {
         this.imgSrv = imgSrv;
         this.imageFormatIO = imageFormatIO;
-        this.r = RateLimiter.create(3, 3, TimeUnit.SECONDS);
     }
 
+    @Async
     @PostMapping(value = "/filter", produces = MediaType.IMAGE_PNG_VALUE)
-    public ResponseEntity<byte[]> filterImage(MultipartHttpServletRequest request) throws IOException {
-        r.acquire();
+    public CompletableFuture<ResponseEntity<byte[]>> filterImage(MultipartHttpServletRequest request) {
         Iterator<String> itr = request.getFileNames();
-        log.debug("logging parsed answer");
-        log.debug("it has params in it: " + itr.hasNext());
+
         MultipartFile file;
 
         if (itr.hasNext()) {
-            final String paramName = itr.next();
-            log.debug("paramName : " + paramName);
-            file = request.getFile(paramName);
+            file = request.getFile(itr.next());
             assert file != null;
-            final byte[] image = file.getBytes();
-
-            final String filter = request.getParameter("filter");
-            List<String> argv = new java.util.ArrayList<>(List.of(filter));
-
-            // filter is { brightness | contrast }
-            if (filter.toLowerCase(Locale.ROOT)
-                    .equals(Filters.BRIGHTNESS.toString().toLowerCase(Locale.ROOT))
-                || filter.toLowerCase(Locale.ROOT)
-                    .equals(Filters.CONTRAST.toString().toLowerCase(Locale.ROOT))) {
-                argv.add(request.getParameter("level"));
-                log.debug("level added: " + request.getParameter("level"));
-                final double level = Double.parseDouble(request.getParameter("level"));
-                log.debug("level added(double): " + argv.get(1));
+            final byte[] image;
+            try {
+                image = file.getBytes();
+            } catch (IOException e) {
+                e.printStackTrace();
+                return CompletableFuture.completedFuture(ResponseEntity.internalServerError()
+                        .build());
             }
 
+            String[] filterNames = null;
+            if (request.getParameter("filter") != null) {
+                filterNames = request.getParameter("filter").split(",");
+            }
+
+            String[] filterParams = null;
+            if (request.getParameter("level") != null) {
+                filterParams = request.getParameter("level").split(",");
+            }
             assert (image.length != 0);
-            BufferedImage bufferedImage = ImageIO.read(new ByteArrayInputStream(image));
+            BufferedImage bufferedImage;
+            try {
+                bufferedImage = ImageIO.read(new ByteArrayInputStream(image));
+            } catch (IOException e) {
+                e.printStackTrace();
+                log.debug(e.getMessage());
+                return CompletableFuture.completedFuture(ResponseEntity.internalServerError()
+                        .build());
+            }
 
             final Image input = imageFormatIO.bufferedToModelImage(bufferedImage);
-            final Image res = imgSrv.process(input, argv);
-            final BufferedImage image1 = imageFormatIO.modelToBufferedImage(res);
-            final byte[] bytes = imageFormatIO.bufferedToByteArray(image1);
-            return ResponseEntity.ok(bytes);
+            final CompletableFuture<Image> res;
+            res = imgSrv.process(input, filterNames, filterParams);
+            log.debug("future of res obtained");
+            BufferedImage image1;
+            try {
+                image1 = imageFormatIO.modelToBufferedImage(res.get());
+                log.debug("buffered result image obtained");
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+                log.debug(e.getMessage());
+                return CompletableFuture.completedFuture(ResponseEntity.internalServerError()
+                        .build());
+            }
+            final byte[] bytes;
+            try {
+                bytes = imageFormatIO.bufferedToByteArray(image1);
+                log.debug("bytes result image obtained");
+            } catch (IOException e) {
+                e.printStackTrace();
+                log.debug(e.getMessage());
+                return CompletableFuture.completedFuture(ResponseEntity.internalServerError()
+                        .build());
+            }
+            log.debug("ready result image");
+            return CompletableFuture.completedFuture(ResponseEntity.ok(bytes));
         }
 
-        return ResponseEntity.internalServerError().build();
-    }
-
-    @PostMapping(value = "/test")
-    public ResponseEntity<String> filterImage(LogDTO inputLine) {
-        log.debug(inputLine.line());
-        return ResponseEntity.ok("test");
+        return null;
     }
 
 }

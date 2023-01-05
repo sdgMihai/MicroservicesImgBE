@@ -2,35 +2,16 @@ package com.img.resource.filter;
 
 import com.img.resource.utils.Image;
 import com.img.resource.utils.Pixel;
-import com.img.resource.utils.ThreadSpecificDataT;
 
 
-public class DummyFilter extends Filter {
-
-    public DummyFilter() {
-        this.filter_additional_data = null;
-    }
-
-    public DummyFilter(FilterAdditionalData filter_additional_data) {
-        this.filter_additional_data = filter_additional_data;
-    }
+public class DummyFilter extends AbstractFilter {
     /**
-     * @param image referinta catre imagine
-     * @param newImage referinta catre obiectul tip Image
-     *          care va contine imaginea rezultata in urma
-     *          aplicarii filtrului.
+     * @param image    input image reference.
+     * @param newImage output image reference.
+     * @param start    first line to be processed from input image.
+     * @param stop     past last line to be processed from input image.
      */
-    @Override
-    public void applyFilter(Image image, Image newImage){
-        ThreadSpecificDataT tData = (ThreadSpecificDataT) filter_additional_data;
-        int slice = (image.height - 2) / tData.NUM_THREADS;//imaginea va avea un rand de pixeli deasupra si unul dedesubt
-        //de aici '-2' din ecuatie
-        int start = Math.max(1, tData.threadID * slice);
-        int stop = (tData.threadID + 1) * slice;
-        if (tData.threadID + 1 == tData.NUM_THREADS) {
-            stop = Math.max((tData.threadID + 1) * slice, image.height - 1);
-        }
-
+    public void applyFilterPh1(Image image, Image newImage, int start, int stop){
         for (int i = start; i < stop; ++i) {
             for (int j = 0; j < image.width - 1; ++j) {
                 Pixel tmp = image.matrix[i][j];

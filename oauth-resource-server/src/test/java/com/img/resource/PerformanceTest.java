@@ -1,9 +1,11 @@
 package com.img.resource;
 
+import com.img.resource.filter.Filter;
+import com.img.resource.filter.FilterFactory;
 import com.img.resource.service.ImageFormatIO;
 import com.img.resource.service.ImgSrv;
 import com.img.resource.utils.Image;
-import org.junit.jupiter.api.Disabled;
+import com.img.resource.utils.ThreadSpecificData;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.openjdk.jmh.annotations.*;
 import org.springframework.context.annotation.Import;
@@ -17,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
@@ -30,12 +33,12 @@ import static org.openjdk.jmh.annotations.Scope.Benchmark;
                 ImageFormatIO.class
         }
 )
-@Disabled
 public class PerformanceTest {
+    private static final int PARALLELISM = 4;
+    private ImageFormatIO imageFormatIO = new ImageFormatIO();
     Image input;
     Image output;
     Image result;
-    private final ImageFormatIO imageFormatIO = new ImageFormatIO();
 
     @Setup(Level.Invocation)
     public void init() throws IOException {
@@ -62,9 +65,18 @@ public class PerformanceTest {
     @OutputTimeUnit(TimeUnit.MILLISECONDS)
     @Warmup(iterations = 2)
     @Measurement(iterations = 4)
-    public void testCannyEdgeDetectionFilter() {
-        ImgSrv imgSrv = new ImgSrv();
-        output = imgSrv.process(input, List.of("canny-edge-detection"));
+    public void testCannyEdgeDetectionFilter()  {
+
+        final CompletableFuture<Image> imageCompletableFuture = CompletableFuture.supplyAsync(() -> {
+            Image newImage = new Image(input.width - 2, output.height - 2);
+            final Filter filter = FilterFactory.filterCreate("canny-edge-detection");
+
+            ImgSrv.applyFilter
+                    .accept(List.of(filter), new ThreadSpecificData(PARALLELISM, input, output));
+            return newImage;
+        });
+
+        imageCompletableFuture.join();
     }
 
     @TearDown(Level.Invocation)
