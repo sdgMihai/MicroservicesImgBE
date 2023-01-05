@@ -5,6 +5,6 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "images")
-public record ImgBin(@Id String id, Binary binary) {
+public record ImgBin(@Id String id, String user, Binary binary) {
 
 }
