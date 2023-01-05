@@ -1,5 +1,6 @@
 package com.img.resource.web.controller;
 
+import com.google.common.util.concurrent.RateLimiter;
 import com.img.resource.filter.Filters;
 import com.img.resource.persistence.repository.ImageRepository;
 import com.img.resource.service.ImageFormatIO;
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RestController
@@ -32,17 +34,19 @@ public class Controller {
     private final ImageRepository imageRepository;
     private final ImgSrv imgSrv;
     private final ImageFormatIO imageFormatIO;
+    private final RateLimiter r;
 
     @Autowired
     public Controller(ImageRepository imageRepository, ImgSrv imgSrv, ImageFormatIO imageFormatIO) {
         this.imageRepository = imageRepository;
         this.imgSrv = imgSrv;
         this.imageFormatIO = imageFormatIO;
+        this.r = RateLimiter.create(3, 3, TimeUnit.SECONDS);
     }
 
-    @CrossOrigin(origins = "http://localhost:8089")
     @PostMapping(value = "/filter", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> filterImage(MultipartHttpServletRequest request) throws IOException {
+        r.acquire();
         Iterator<String> itr = request.getFileNames();
         log.debug("logging parsed answer");
         log.debug("it has params in it: " + itr.hasNext());
@@ -79,10 +83,9 @@ public class Controller {
             return ResponseEntity.ok(bytes);
         }
 
-        return null;
+        return ResponseEntity.internalServerError().build();
     }
 
-    @CrossOrigin("http://localhost:8089")
     @PostMapping(value = "/test")
     public ResponseEntity<String> filterImage(LogDTO inputLine) {
         log.debug(inputLine.line());
