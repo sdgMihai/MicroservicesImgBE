@@ -1,5 +1,7 @@
 package com.img.resource.web.controller;
 
+import com.img.resource.persistence.ImageRepository;
+import com.img.resource.persistence.model.ImageEntity;
 import com.img.resource.service.ImageFormatIO;
 import com.img.resource.service.ImgSrv;
 import com.img.resource.utils.Image;
@@ -8,6 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,16 +33,18 @@ import java.util.concurrent.ExecutionException;
 public class Controller {
     private final ImgSrv imgSrv;
     private final ImageFormatIO imageFormatIO;
+    private final ImageRepository imgRepo;
 
     @Autowired
-    public Controller(ImgSrv imgSrv, ImageFormatIO imageFormatIO) {
+    public Controller(ImgSrv imgSrv, ImageFormatIO imageFormatIO, ImageRepository imgRepo) {
         this.imgSrv = imgSrv;
         this.imageFormatIO = imageFormatIO;
+        this.imgRepo = imgRepo;
     }
 
     @Async
     @PostMapping(value = "/filter", produces = MediaType.IMAGE_PNG_VALUE)
-    public CompletableFuture<ResponseEntity<byte[]>> filterImage(MultipartHttpServletRequest request) {
+    public CompletableFuture<ResponseEntity<byte[]>> filterImage(MultipartHttpServletRequest request, @AuthenticationPrincipal Jwt principal) {
         Iterator<String> itr = request.getFileNames();
 
         MultipartFile file;
@@ -99,10 +106,35 @@ public class Controller {
                         .build());
             }
             log.debug("ready result image");
+
+            String userId = principal.getClaimAsString("sub");
+            final ImageEntity imageEntity = new ImageEntity();
+            log.debug("save res image to db");
+            imageEntity.setContent(bytes);
+            imageEntity.setUserId(userId);
+            log.debug("image usedId:" + imageEntity.getUserId());
+            log.debug("image content size:" + imageEntity.getContent().length);
+            imgRepo.save(imageEntity);
+            if (imgRepo.findByUserId(userId).size() < 1) {
+                log.debug("cannot save image");
+                return CompletableFuture.completedFuture(ResponseEntity.internalServerError().build());
+            }
+
+            log.debug("imaged has been saved");
             return CompletableFuture.completedFuture(ResponseEntity.ok(bytes));
         }
 
         return null;
     }
 
+    @Async
+    @GetMapping(value = "/filter/ret")
+    public CompletableFuture<ResponseEntity<byte[]>> returnImage( @AuthenticationPrincipal Jwt principal) {
+        String userId = principal.getClaimAsString("sub");
+        final byte[] content = imgRepo.findByUserId(userId)
+                .get(0)
+                .getContent();
+        log.debug("got image from db");
+        return CompletableFuture.completedFuture(ResponseEntity.ok(content));
+    }
 }

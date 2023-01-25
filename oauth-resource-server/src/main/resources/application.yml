@@ -4,12 +4,12 @@ server:
     context-path: /resource-server
   tomcat:
     max-swallow-size: 90MB
-
+    connection-timeout: 120s
 ####### resource server configuration properties
 spring:
-  mongodb:
-    embedded:
-      version: 4.4.9
+  mvc:
+    async:
+      request-timeout: -1
   security:
     oauth2:
       resourceserver:
@@ -20,6 +20,18 @@ spring:
     multipart:
       max-file-size: 90MB
       max-request-size: 90MB
+  datasource:
+    url: jdbc:mysql://localhost:3306/IMAGE
+    username: admin
+    password: password
+    driver-class-name: com.mysql.jdbc.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL57InnoDBDialect
+    hibernate:
+      ddl-auto: create
+hibernate:
+  connection:
+    provider_class: org.hibernate.connection.C3P0ConnectionProvider
 logging:
   level:
     root: DEBUG
