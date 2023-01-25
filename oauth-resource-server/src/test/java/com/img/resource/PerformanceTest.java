@@ -6,8 +6,10 @@ import com.img.resource.service.ImageFormatIO;
 import com.img.resource.service.ImgSrv;
 import com.img.resource.utils.Image;
 import com.img.resource.utils.ThreadSpecificData;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.openjdk.jmh.annotations.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -20,6 +22,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
@@ -33,6 +36,7 @@ import static org.openjdk.jmh.annotations.Scope.Benchmark;
                 ImageFormatIO.class
         }
 )
+@Slf4j
 public class PerformanceTest {
     private static final int PARALLELISM = 4;
     private ImageFormatIO imageFormatIO = new ImageFormatIO();
@@ -40,8 +44,13 @@ public class PerformanceTest {
     Image output;
     Image result;
 
+    @Autowired
+    private Executor executor;
+
     @Setup(Level.Invocation)
     public void init() throws IOException {
+        String pwd = System.getProperty("user.dir") + "\n";
+        log.debug("pwd->"+pwd);
         File inputFile = new ClassPathResource("noise.png").getFile();
         byte[] image = Files.readAllBytes(inputFile.toPath());
         assert (image.length != 0);
@@ -63,8 +72,8 @@ public class PerformanceTest {
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
     @OutputTimeUnit(TimeUnit.MILLISECONDS)
-    @Warmup(iterations = 2)
-    @Measurement(iterations = 4)
+    @Warmup(iterations = 1)
+    @Measurement(iterations = 1)
     public void testCannyEdgeDetectionFilter()  {
 
         final CompletableFuture<Image> imageCompletableFuture = CompletableFuture.supplyAsync(() -> {
@@ -72,7 +81,7 @@ public class PerformanceTest {
             final Filter filter = FilterFactory.filterCreate("canny-edge-detection");
 
             ImgSrv.applyFilter
-                    .accept(List.of(filter), new ThreadSpecificData(PARALLELISM, input, output));
+                    .accept(List.of(filter), new ThreadSpecificData(PARALLELISM, input, output, executor));
             return newImage;
         });
 

@@ -4,12 +4,16 @@ import com.img.resource.filter.Filter;
 import com.img.resource.utils.Image;
 import com.img.resource.utils.ImageUtils;
 import com.img.resource.utils.ThreadSpecificData;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 
 @Service
@@ -20,8 +24,8 @@ public class ImgSrv {
         while (filterIt.hasNext()) {
             Filter filter = filterIt.next();
             log.debug("applying " + filter.toString() + "filter");
-            filter.applyFilter(data.getImage(), data.getNewImage(), data.getPARALLELISM());
-
+            filter.applyFilter(data.getImage(), data.getNewImage(), data.getPARALLELISM(), data.getExecutor());
+            log.debug("filter applied");
             if (filterIt.hasNext()) {
                 ImageUtils.swap(data.getImage(), data.getNewImage(), data.getPARALLELISM());
             }
@@ -30,16 +34,20 @@ public class ImgSrv {
     @Value("${NUM_THREADS}")
     Integer PARALLELISM;
 
-    public CompletableFuture<Image> process(Image image, String[] filterNames, String[] filterParams) {
-        return CompletableFuture.supplyAsync(() -> {
-            assert (PARALLELISM == 4);
-            Image newImage = new Image(image.width - 2, image.height - 2);
-            final List<Filter> filters = FilterService.getFilters(filterNames, filterParams);
+    @Autowired
+    @Qualifier("execFilter")
+    private Executor executor;
 
-            ImgSrv.applyFilter
-                    .accept(filters, new ThreadSpecificData(PARALLELISM, image, newImage));
-            return newImage;
-        });
+    @Async("execFilter")
+    public CompletableFuture<Image> process(Image image, String[] filterNames, String[] filterParams) {
+        assert (PARALLELISM == 4);
+        Image newImage = new Image(image.width - 2, image.height - 2);
+        assert (executor != null);
+        final List<Filter> filters = FilterService.getFilters(filterNames, filterParams);
+
+        ImgSrv.applyFilter
+                .accept(filters, new ThreadSpecificData(PARALLELISM, image, newImage, executor));
+        return CompletableFuture.completedFuture(newImage);
     }
 
 }

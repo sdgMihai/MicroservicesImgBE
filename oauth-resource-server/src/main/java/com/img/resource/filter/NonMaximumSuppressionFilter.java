@@ -4,10 +4,14 @@ package com.img.resource.filter;
 import com.img.resource.utils.Image;
 import com.img.resource.utils.ImageUtils;
 import com.img.resource.utils.Pixel;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.util.Pair;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.stream.Stream;
 
+@Slf4j
 public class NonMaximumSuppressionFilter implements Filter {
     private final float[][] theta;
     private final int thetaHeight;
@@ -25,15 +29,23 @@ public class NonMaximumSuppressionFilter implements Filter {
      * @param PARALLELISM integer value denoting the number of task running in parallel.
      */
     @Override
-    public void applyFilter(Image in, Image out, final int PARALLELISM) {
+    public void applyFilter(Image in, Image out, final int PARALLELISM, final Executor executor) {
         CompletableFuture<Void>[] partialFilters = new CompletableFuture[PARALLELISM];
         Pair<Integer, Integer>[] ranges = ImageUtils.getRange(PARALLELISM, in.height);
         for (int i = 0; i < PARALLELISM; i++) {
             int start = ranges[i].getFirst();
             int stop = ranges[i].getSecond();
-            partialFilters[i] = CompletableFuture.runAsync(() -> applyFilterPh1(in, out, start, stop));
+            partialFilters[i] = CompletableFuture.runAsync(
+                    () -> applyFilterPh1(in, out, start, stop)
+                    , executor
+            );
         }
-        CompletableFuture.allOf(partialFilters).join();
+//        CompletableFuture.allOf(partialFilters).join();
+        Stream.of(partialFilters)
+                .map(CompletableFuture::join)
+                .forEach((Void) -> {
+                    log.debug("finish ph2 db th");
+                });
     }
 
 

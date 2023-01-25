@@ -2,6 +2,9 @@ package com.img.resource.filter;
 
 import com.img.resource.utils.Image;
 import com.img.resource.utils.Pixel;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.concurrent.Executor;
 
 public class GaussianBlurFilter extends AbstractFilter {
     static final float kernel[][] = new float[][]{{1.f / 16.f, 2.f / 16.f, 1.f / 16.f},

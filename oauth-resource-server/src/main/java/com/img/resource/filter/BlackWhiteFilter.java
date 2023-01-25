@@ -2,7 +2,12 @@ package com.img.resource.filter;
 
 import com.img.resource.utils.Image;
 import com.img.resource.utils.Pixel;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.concurrent.Executor;
+
+@Slf4j
 public class BlackWhiteFilter extends AbstractFilter{
 
     public void applyFilterPh1(Image image, Image newImage, int start, int stop) {
@@ -15,5 +20,6 @@ public class BlackWhiteFilter extends AbstractFilter{
                 newImage.matrix[i][j] = new Pixel((char) gray, (char) gray, (char) gray, image.matrix[i][j].a);
             }
         }
+        log.debug("bw filter ph1:" + start);
     }
 }

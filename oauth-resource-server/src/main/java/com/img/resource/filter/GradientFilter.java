@@ -3,12 +3,20 @@ package com.img.resource.filter;
 import com.img.resource.utils.Image;
 import com.img.resource.utils.ImageUtils;
 import com.img.resource.utils.Pixel;
+import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.A;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.util.Pair;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import java.util.Date;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Stream;
 
+@Slf4j
 public class GradientFilter implements Filter {
     public float[][] theta; /* place to save theta calculation */
     public int thetaHeight;
@@ -30,7 +38,7 @@ public class GradientFilter implements Filter {
      * @param PARALLELISM integer value denoting the number of task running in parallel.
      */
     @Override
-    public void applyFilter(Image in, Image out, final int PARALLELISM) {
+    public void applyFilter(Image in, Image out, final int PARALLELISM, final Executor executor) {
         Ix = new float[in.height][];
         Iy = new float[in.height][];
         theta = new float[in.height][];
@@ -43,6 +51,8 @@ public class GradientFilter implements Filter {
 
         this.thetaHeight = in.height;
         this.thetaWidth = in.width;
+        System.out.println("within gradient");
+        log.debug("Running: " + Thread.currentThread().getId() + " | " + new Date());
 
         // ph1
         CompletableFuture<Float>[] partialFilters = new CompletableFuture[PARALLELISM];
@@ -50,7 +60,10 @@ public class GradientFilter implements Filter {
         for (int i = 0; i < PARALLELISM; i++) {
             int start = ranges[i].getFirst();
             int stop = ranges[i].getSecond();
-            partialFilters[i] = CompletableFuture.supplyAsync(() -> applyFilterPh1(in, out, start, stop));
+            partialFilters[i] = CompletableFuture.supplyAsync(
+                    () -> applyFilterPh1(in, out, start, stop)
+                    , executor
+            );
         }
         final Optional<Float> gMax = Stream.of(partialFilters)
                 .map(CompletableFuture::join)
@@ -62,13 +75,25 @@ public class GradientFilter implements Filter {
             int stop = ranges[i].getSecond();
 
             partialFilters2[i] = CompletableFuture.runAsync(
-                    () -> applyFilterPh2(in, out, start, stop, gMax.get()));
+                    () -> applyFilterPh2(in, out, start, stop, gMax.get())
+                    , executor
+            );
         }
-        CompletableFuture.allOf(partialFilters2).join();
+         Stream.of(partialFilters2)
+                .map(CompletableFuture::join)
+                        .forEach((Void) -> {
+                            System.out.println("finish ph2");
+                        });
+        log.debug("scheduler queue:"+ ((ThreadPoolTaskExecutor)executor).getQueueSize());
+        log.debug("active bf grad phase 2:" + ((ThreadPoolTaskExecutor)executor).getActiveCount());
+//        CompletableFuture.allOf(partialFilters2).join();
     }
 
     public float applyFilterPh1(Image image, Image newImage, int start, int stop) {
         // 1. Se aplica kernelul Gx pe imagine si se obtine Ix
+        log.debug("applying filter gradient phase 1");
+        log.debug("Running: " + Thread.currentThread().getId() + " | " + new Date());
+
         for (int i = start; i < stop; ++i) {
             for (int j = 1; j < image.width - 1; ++j) {
                 float gray = 0;
@@ -118,6 +143,7 @@ public class GradientFilter implements Filter {
 
 
     public void applyFilterPh2(Image image, Image newImage, int start, int stop, float gMax) {
+        log.debug("applying filter gradient phase 2");
         // 4. Se calculeaza G = G / G.max() * 255
         for (int i = start; i < stop; ++i) {
             for (int j = 1; j < image.width - 1; ++j) {
@@ -128,5 +154,7 @@ public class GradientFilter implements Filter {
                 newImage.matrix[i][j] = new Pixel((char) gray, (char) gray, (char) gray, image.matrix[i][j].a);
             }
         }
+        System.out.println("Running: " + Thread.currentThread().getId() + " | " + new Date());
+        log.debug("prepare finish grad phase 2");
     }
 }

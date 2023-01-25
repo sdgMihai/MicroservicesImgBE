@@ -6,6 +6,7 @@ import com.img.resource.filter.Filters;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
+import java.util.concurrent.Executor;
 
 @Slf4j
 public class FilterService {
@@ -39,7 +40,8 @@ public class FilterService {
                         , (float) param
                         , null
                         , 0
-                        , 0));
+                        , 0
+                ));
             } else if (filterNameEquals(filterName, Filters.CONTRAST.toString())) {
                 double param = 0;
                 assert filterParamsIt != null;
@@ -52,7 +54,8 @@ public class FilterService {
                         , (float) param
                         , null
                         , 0
-                        ,0));
+                        ,0
+                        ));
             } else {
                 filters.add(FilterFactory.filterCreate(filterName));
             }
