@@ -13,7 +13,7 @@
 ### Options
 - Security Assertion Markup Language (SAML) is an open standard that attempts to bridge the divide between authentication and authorization.
 - OAuth is an open authorization standard.
-- OpenID Connect is an authentication standard that runs on top of OAuth 2.0.
+- OpenID Connect is an authentication standard that superseded OpenId, runs on top of OAuth 2.0.
 
 
 
