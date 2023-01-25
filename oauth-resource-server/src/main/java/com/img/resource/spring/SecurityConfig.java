@@ -21,12 +21,18 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .hasAuthority("SCOPE_write")
                 .antMatchers(HttpMethod.POST, "/api/test")
                 .hasAuthority("SCOPE_write")
+                .antMatchers(HttpMethod.GET, "/api/filter/ret")
+                .hasAuthority("SCOPE_read")
                 .anyRequest()
                 .authenticated()
                 .and()
                 .oauth2ResourceServer()
                 .jwt()
                 ;
+//        http.headers().httpStrictTransportSecurity().disable();
+        http.headers().httpStrictTransportSecurity()
+                .maxAgeInSeconds(0)
+                .includeSubDomains(true);
     }//@formatter:on
 
     @Override
