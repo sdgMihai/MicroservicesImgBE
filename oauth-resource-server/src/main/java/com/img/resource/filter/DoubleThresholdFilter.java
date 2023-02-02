@@ -6,6 +6,8 @@ import com.img.resource.utils.Pixel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.util.Pair;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -34,21 +36,25 @@ public class DoubleThresholdFilter implements Filter{
         final Optional<Float> maxVal = Stream.of(partialFilters)
                 .map(CompletableFuture::join)
                 .max(Float::compareTo);
-        CompletableFuture<Void>[] partialFilters2 = new CompletableFuture[PARALLELISM];
+        List<CompletableFuture<Void>> partialFilters2 = new ArrayList<>();
         for (int i = 0; i < PARALLELISM; i++) {
+            log.debug("add new dt to array ph 2");
             int start = ranges[i].getFirst();
             int stop = ranges[i].getSecond();
 
-            partialFilters2[i] = CompletableFuture.runAsync(
+            partialFilters2.add(CompletableFuture.runAsync(
                     () -> applyFilterPh2(in, out, start, stop, maxVal.get())
                     , executor
-            );
+            ));
         }
-//        CompletableFuture.allOf(partialFilters2).join();
-        Stream.of(partialFilters2)
-                .map(CompletableFuture::join)
-                .forEach((Void) -> {
-                    log.debug("finish ph2 db th");
+        CompletableFuture.allOf(partialFilters2.toArray(new CompletableFuture[partialFilters2.size()]))
+                .whenComplete((input, e) -> {
+                    log.debug("In whenComplete...");
+                    log.debug("----------- Exception Status ------------");
+
+                    for (int i = 0; i < partialFilters2.size(); i++) {
+                        log.debug(" " + i + ": " + partialFilters2.get(i).isCompletedExceptionally());
+                    }
                 });
     }
 
