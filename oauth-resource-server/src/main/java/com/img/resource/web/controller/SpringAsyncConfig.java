@@ -28,29 +28,33 @@ public class SpringAsyncConfig implements AsyncConfigurer {
     @Autowired
     private BeanFactory beanFactory;
 
+    @Value("${REQ_PARALLEL}")
+    private Integer req_parallel;
+
     @Override
     public Executor getAsyncExecutor() {
         ThreadPoolTaskExecutor scheduler = new ThreadPoolTaskExecutor();
         scheduler.setCorePoolSize(parallelism);
-        scheduler.setMaxPoolSize(parallelism * 200);
+        scheduler.setMaxPoolSize(parallelism);
         scheduler.setThreadNamePrefix("ResourceAsyncThread-");
         scheduler.initialize();
         log.debug("\n\n\nscheduler thread name prefix:" + scheduler.getThreadNamePrefix());
-        System.out.println("\n\n\nscheduler thread name prefix:" + scheduler.getThreadNamePrefix());
-//        return scheduler;
-        return new LazyTraceExecutor(beanFactory, scheduler);
+        log.debug("\n\n\nscheduler thread name prefix:" + scheduler.getThreadNamePrefix());
+        return scheduler;
+//        return new LazyTraceExecutor(beanFactory, scheduler);
     }
 
     @Bean(name = "executorOne")
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(2);
-        executor.setMaxPoolSize(200);
+        executor.setCorePoolSize(req_parallel);
+        executor.setMaxPoolSize(req_parallel);
         executor.setQueueCapacity(500);
         executor.setKeepAliveSeconds(200);
+        executor.setAllowCoreThreadTimeOut(true);
         executor.setThreadNamePrefix("Browser-");
         log.debug("\n\n\nscheduler thread name prefix:" + executor.getThreadNamePrefix());
-        System.out.println("\n\n\nscheduler thread name prefix:" + executor.getThreadNamePrefix());
+        log.debug("\n\n\nscheduler thread name prefix:" + executor.getThreadNamePrefix());
         executor.initialize();
         return executor;
     }
@@ -58,13 +62,14 @@ public class SpringAsyncConfig implements AsyncConfigurer {
     @Bean(name = "execFilter")
     public Executor taskExecutorF() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        int numOfCores = Runtime.getRuntime().availableProcessors();
-        log.debug("number of cores: "+ numOfCores);
-        executor.setCorePoolSize(numOfCores * 20);
-        executor.setMaxPoolSize(numOfCores * 20);
+//        int numOfCores = Runtime.getRuntime().availableProcessors();
+        log.info("number of threads: " + (parallelism + 3));
+        executor.setCorePoolSize(parallelism + 3);
+        executor.setMaxPoolSize(parallelism + 3);
         executor.setQueueCapacity(500);
         executor.setThreadNamePrefix("execFilter-");
         executor.setKeepAliveSeconds(200);
+        executor.setAllowCoreThreadTimeOut(true);
         executor.initialize();
         log.debug("schedule execFilter");
         log.debug("\n\n\nscheduler thread name prefix:" + executor.getThreadNamePrefix());
