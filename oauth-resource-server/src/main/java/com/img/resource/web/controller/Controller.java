@@ -1,5 +1,7 @@
 package com.img.resource.web.controller;
 
+import com.google.common.util.concurrent.RateLimiter;
+import com.img.resource.filter.Filters;
 import com.img.resource.service.ImageFormatIO;
 import com.img.resource.service.ImgSrv;
 import com.img.resource.utils.Image;
@@ -7,9 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,86 +20,62 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/")
 public class Controller {
+    private static int imgID = 0;
     private final ImgSrv imgSrv;
     private final ImageFormatIO imageFormatIO;
+    private final RateLimiter r;
 
     @Autowired
-    public Controller(ImgSrv imgSrv, ImageFormatIO imageFormatIO) {
+    public Controller( ImgSrv imgSrv, ImageFormatIO imageFormatIO) {
         this.imgSrv = imgSrv;
         this.imageFormatIO = imageFormatIO;
+        this.r = RateLimiter.create(1, 3, TimeUnit.SECONDS);
     }
 
-    @Async("executorOne")
     @PostMapping(value = "/filter", produces = MediaType.IMAGE_PNG_VALUE)
-    public CompletableFuture<ResponseEntity<byte[]>> filterImage(MultipartHttpServletRequest request, @AuthenticationPrincipal Jwt principal) { //
-        log.debug("debug message in image filter !");
-
+    public ResponseEntity<byte[]> filterImage(MultipartHttpServletRequest request) throws IOException {
+        r.acquire();
         Iterator<String> itr = request.getFileNames();
-
-        String userId = principal.getClaimAsString("sub");
-
         MultipartFile file;
 
         if (itr.hasNext()) {
             file = request.getFile(itr.next());
             assert file != null;
-            final byte[] image;
-            final CompletableFuture<ResponseEntity<byte[]>> internalServerError = CompletableFuture.completedFuture(
-                    ResponseEntity.internalServerError().body(new byte[0])
-            );
-            try {
-                image = file.getBytes();
+            final byte[] image = file.getBytes();
 
-                String[] filterNames = null;
-                if (request.getParameter("filter") != null) {
-                    filterNames = request.getParameter("filter").split(",");
-                }
-                String[] filterParams = null;
-                if (request.getParameter("level") != null) {
-                    filterParams = request.getParameter("level").split(",");
-                }
-                assert (image.length != 0);
-                BufferedImage bufferedImage;
-                bufferedImage = ImageIO.read(new ByteArrayInputStream(image));
+            final String filter = request.getParameter("filter");
+            List<String> argv = new java.util.ArrayList<>(List.of(filter));
 
-                final Image input = imageFormatIO.bufferedToModelImage(bufferedImage);
-                final CompletableFuture<Image> res;
-                res = imgSrv.process(input, filterNames, filterParams);
-                BufferedImage image1;
-
-                final Image image2 = res.get(24, TimeUnit.SECONDS);
-                log.debug("future of res obtained");
-                image1 = imageFormatIO.modelToBufferedImage(image2);
-                log.debug("buffered result image obtained");
-
-                final byte[] bytes;
-                bytes = imageFormatIO.bufferedToByteArray(image1);
-                log.debug("bytes result image obtained");
-
-
-                log.debug("imaged has been saved");
-                return CompletableFuture.completedFuture(ResponseEntity.ok(bytes));
-            } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
-                e.printStackTrace();
-                log.debug(e.getMessage());
-                return internalServerError;
+            // filter is { brightness | contrast }
+            if (filter.toLowerCase(Locale.ROOT)
+                    .equals(Filters.BRIGHTNESS.toString().toLowerCase(Locale.ROOT))
+                    || filter.toLowerCase(Locale.ROOT)
+                    .equals(Filters.CONTRAST.toString().toLowerCase(Locale.ROOT))) {
+                argv.add(request.getParameter("level"));
+                log.debug("level added: " + request.getParameter("level"));
+                final double level = Double.parseDouble(request.getParameter("level"));
+                log.debug("level added(double): " + argv.get(1));
             }
+
+            assert (image.length != 0);
+            BufferedImage bufferedImage = ImageIO.read(new ByteArrayInputStream(image));
+
+            final Image input = imageFormatIO.bufferedToModelImage(bufferedImage);
+            final Image res = imgSrv.process(input, argv);
+            final BufferedImage image1 = imageFormatIO.modelToBufferedImage(res);
+            final byte[] bytes = imageFormatIO.bufferedToByteArray(image1);
+            return ResponseEntity.ok(bytes);
         }
 
-        return CompletableFuture.completedFuture(
-                ResponseEntity.badRequest()
-                        .body(new byte[0])
-        );
-
+        return null;
     }
 
 }
