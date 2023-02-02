@@ -39,5 +39,6 @@ logging:
                 Http11InputBuffer: OFF
 ######################### my variables #######################################
 NUM_THREADS: 4
+REQ_PARALLEL: 2
 base_fe_url: http://localhost:8089/
 realm: baeldung
