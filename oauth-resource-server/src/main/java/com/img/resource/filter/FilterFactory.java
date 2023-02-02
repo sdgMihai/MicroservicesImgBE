@@ -3,28 +3,26 @@ package com.img.resource.filter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Locale;
-import java.util.concurrent.Executor;
 
 @Slf4j
 public class FilterFactory {
-
     public static Filter filterCreate(String filterName) {
         float param = 0.0f;
         int thetaHeight = 0;
         int thetaWidth = 0;
-        return filterCreate(filterName, param, null, thetaHeight, thetaWidth);
+        return filterCreate(filterName, param, null, thetaHeight, thetaWidth, null);
     }
 
     /**
-     * creates a filter object
+     * creeaza un obiect-filtru
      *
-     * @param filterName the filter name, one word.
-     * @param param level of brightness or contrast, depending on the @param filterName.
-     * @return reference to the new filter object.
+     * @param filterName numele filtrului
+     * @param param level of brightness or contrast, depending on the @param filterName
+     * @return referinta catre obiectul-filtru creat
      */
     public static Filter filterCreate(String filterName, float param,
                                       float[][] theta, int thetaHeight,
-                                      int thetaWidth) {
+                                      int thetaWidth, FilterAdditionalData varargs) {
         Filters it;
         try {
             log.debug(String.format("filter factory creating filter with name [%s]"
@@ -32,22 +30,22 @@ public class FilterFactory {
             it = Filters.valueOf(filterName.toUpperCase(Locale.ROOT).replace("-", "_"));
         } catch (IllegalArgumentException e) {
             log.debug("Bad filter name exception");
-            return new DummyFilter();
+            return new DummyFilter(varargs);
         }
 
         return switch (it) {
-            case SHARPEN -> new SharpenFilter();
-            case EMBOSS -> new EmbossFilter();
-            case BLACK_WHITE -> new BlackWhiteFilter();
-            case BRIGHTNESS -> new BrightnessFilter(param);
-            case CANNY_EDGE_DETECTION -> new CannyEdgeDetectionFilter();
-            case CONTRAST -> new ContrastFilter(param);
-            case DOUBLE_THRESHOLD -> new DoubleThresholdFilter();
-            case EDGE_TRACKING -> new EdgeTrackingFilter();
-            case GAUSSIAN_BLUR -> new GaussianBlurFilter();
-            case NON_MAXIMUM_SUPPRESSION -> new NonMaximumSuppressionFilter(theta, thetaHeight, thetaWidth);
-            case GRADIENT -> new GradientFilter();
-            case SEPIA -> new SepiaFilter();
+            case SHARPEN -> new SharpenFilter(varargs);
+            case EMBOSS -> new EmbossFilter(varargs);
+            case BLACK_WHITE -> new BlackWhiteFilter(varargs);
+            case BRIGHTNESS -> new BrightnessFilter(param, varargs);
+            case CANNY_EDGE_DETECTION -> new CannyEdgeDetectionFilter(varargs);
+            case CONTRAST -> new ContrastFilter(param, varargs);
+            case DOUBLE_THRESHOLD -> new DoubleThresholdFilter(varargs);
+            case EDGE_TRACKING -> new EdgeTrackingFilter(varargs);
+            case GAUSSIAN_BLUR -> new GaussianBlurFilter(varargs);
+            case NON_MAXIMUM_SUPPRESSION -> new NonMaximumSuppressionFilter(theta, thetaHeight, thetaWidth, varargs);
+            case GRADIENT -> new GradientFilter(varargs);
+            case SEPIA -> new SepiaFilter(varargs);
         };
 
     }

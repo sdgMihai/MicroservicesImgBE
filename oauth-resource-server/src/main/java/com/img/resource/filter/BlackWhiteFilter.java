@@ -1,17 +1,33 @@
 package com.img.resource.filter;
 
+
 import com.img.resource.utils.Image;
 import com.img.resource.utils.Pixel;
-import lombok.extern.slf4j.Slf4j;
+import com.img.resource.utils.ThreadSpecificDataT;
 
-import java.time.Duration;
-import java.time.Instant;
+public class BlackWhiteFilter extends Filter {
 
-@Slf4j
-public class BlackWhiteFilter extends AbstractFilter{
+    public BlackWhiteFilter(FilterAdditionalData filter_additional_data) {
+        this.filter_additional_data = filter_additional_data;
+    }
 
-    public void applyFilterPh1(Image image, Image newImage, int start, int stop) {
-        Instant startTime = Instant.now();
+    /**
+     * @param image    referinta catre imagine
+     * @param newImage referinta catre obiectul tip Image
+     *                 care va contine imaginea rezultata in urma
+     *                 aplicarii filtrului.
+     */
+    @Override
+    public void applyFilter(Image image, Image newImage) {
+        ThreadSpecificDataT tData = (ThreadSpecificDataT) filter_additional_data;
+        int slice = (image.height - 2) / tData.NUM_THREADS;//imaginea va avea un rand de pixeli deasupra si unul dedesubt
+        //de aici '-2' din ecuatie
+        int start = Math.max(1, tData.threadID * slice);
+        int stop = (tData.threadID + 1) * slice;
+        if (tData.threadID + 1 == tData.NUM_THREADS) {
+            stop = Math.max((tData.threadID + 1) * slice, image.height - 1);
+        }
+
         for (int i = start; i < stop; ++i) {
             for (int j = 0; j < image.width - 1; ++j) {
                 int gray = (int) (0.2126 * image.matrix[i][j].r +
@@ -21,8 +37,5 @@ public class BlackWhiteFilter extends AbstractFilter{
                 newImage.matrix[i][j] = new Pixel((char) gray, (char) gray, (char) gray, image.matrix[i][j].a);
             }
         }
-        Duration duration = Duration.between(startTime, Instant.now());
-        log.info("time processing " + (stop-start) + " lines of length:" + image.width + " duration:" + duration);
-        log.debug("bw filter ph1:" + start);
     }
 }
