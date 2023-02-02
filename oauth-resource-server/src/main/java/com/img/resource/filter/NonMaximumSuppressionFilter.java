@@ -6,6 +6,7 @@ import com.img.resource.utils.ImageUtils;
 import com.img.resource.utils.Pixel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.util.Pair;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -32,6 +33,7 @@ public class NonMaximumSuppressionFilter implements Filter {
     public void applyFilter(Image in, Image out, final int PARALLELISM, final Executor executor) {
         CompletableFuture<Void>[] partialFilters = new CompletableFuture[PARALLELISM];
         Pair<Integer, Integer>[] ranges = ImageUtils.getRange(PARALLELISM, in.height);
+        log.debug("active threads in filterExecutor:" + ((ThreadPoolTaskExecutor)executor).getActiveCount());
         for (int i = 0; i < PARALLELISM; i++) {
             int start = ranges[i].getFirst();
             int stop = ranges[i].getSecond();
@@ -44,7 +46,7 @@ public class NonMaximumSuppressionFilter implements Filter {
         Stream.of(partialFilters)
                 .map(CompletableFuture::join)
                 .forEach((Void) -> {
-                    log.debug("finish ph2 db th");
+                    log.debug("finish ph1 nm th");
                 });
     }
 
