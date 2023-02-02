@@ -19,7 +19,6 @@ public class ImgSrv {
     Integer NUM_THREADS;
 
     public Image process(Image image, List<String> filter) {
-        assert (NUM_THREADS == 4);
         List<Thread> threads = new ArrayList<>(NUM_THREADS);
         List<ThreadSpecificData> specificDataList = new ArrayList<>(NUM_THREADS);
         Barrier barrier = new Barrier(NUM_THREADS);

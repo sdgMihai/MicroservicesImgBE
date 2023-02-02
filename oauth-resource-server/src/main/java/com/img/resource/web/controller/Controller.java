@@ -37,7 +37,7 @@ public class Controller {
     public Controller( ImgSrv imgSrv, ImageFormatIO imageFormatIO) {
         this.imgSrv = imgSrv;
         this.imageFormatIO = imageFormatIO;
-        this.r = RateLimiter.create(1, 3, TimeUnit.SECONDS);
+        this.r = RateLimiter.create(8, 3, TimeUnit.SECONDS);
     }
 
     @PostMapping(value = "/filter", produces = MediaType.IMAGE_PNG_VALUE)
