@@ -69,7 +69,7 @@ public class CannyEdgeDetectionFilter implements Filter {
     }
 
     public void applyFilterPh1(Image image, Image newImage, int start, int stop) {
-        System.out.println("final step of c-e-d");
+        log.debug("final step of c-e-d");
         for (int i = start; i < stop; ++i) {
             final Pixel[] swp = image.matrix[i];
             image.matrix[i] = newImage.matrix[i];
