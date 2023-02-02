@@ -1,15 +1,16 @@
 package com.img.resource;
 
-import com.img.resource.filter.Filter;
-import com.img.resource.filter.FilterFactory;
+import com.img.resource.filter.Filters;
 import com.img.resource.service.ImageFormatIO;
 import com.img.resource.service.ImgSrv;
+import com.img.resource.utils.Barrier;
+import com.img.resource.utils.DataInit;
 import com.img.resource.utils.Image;
 import com.img.resource.utils.ThreadSpecificData;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.openjdk.jmh.annotations.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -20,9 +21,8 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
@@ -36,21 +36,18 @@ import static org.openjdk.jmh.annotations.Scope.Benchmark;
                 ImageFormatIO.class
         }
 )
+@Disabled
 @Slf4j
 public class PerformanceTest {
-    private static final int PARALLELISM = 4;
-    private ImageFormatIO imageFormatIO = new ImageFormatIO();
+    private ImageFormatIO imageFormatIO  = new ImageFormatIO();
+    private static final int NUM_THREADS = 4;
+
     Image input;
     Image output;
     Image result;
 
-    @Autowired
-    private Executor executor;
-
     @Setup(Level.Invocation)
     public void init() throws IOException {
-        String pwd = System.getProperty("user.dir") + "\n";
-        log.debug("pwd->"+pwd);
         File inputFile = new ClassPathResource("noise.png").getFile();
         byte[] image = Files.readAllBytes(inputFile.toPath());
         assert (image.length != 0);
@@ -69,23 +66,38 @@ public class PerformanceTest {
         );
     }
 
+
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
     @OutputTimeUnit(TimeUnit.MILLISECONDS)
-    @Warmup(iterations = 1)
-    @Measurement(iterations = 1)
-    public void testCannyEdgeDetectionFilter()  {
+    @Warmup(iterations = 2)
+    @Measurement(iterations = 4)
+    public void testCannyEdgeDetectionFilter() {
 
-        final CompletableFuture<Image> imageCompletableFuture = CompletableFuture.supplyAsync(() -> {
-            Image newImage = new Image(input.width - 2, output.height - 2);
-            final Filter filter = FilterFactory.filterCreate("canny-edge-detection");
+        List<Thread> tasks = new ArrayList<>(NUM_THREADS);
+        List<String> filter = List.of(Filters.CANNY_EDGE_DETECTION.toString());
+        Object lock = new Object();
+        DataInit dataInit = new DataInit();
 
-            ImgSrv.applyFilter
-                    .accept(List.of(filter), new ThreadSpecificData(PARALLELISM, input, output, executor));
-            return newImage;
-        });
+        final Barrier barrier = new Barrier(NUM_THREADS);
+        List<ThreadSpecificData> specificDataList = new ArrayList<>(NUM_THREADS);
+        for (int i = 0; i < NUM_THREADS; i++)
+            specificDataList.add(new ThreadSpecificData(i, barrier,lock, input, output, filter.size(), NUM_THREADS, filter, dataInit));
 
-        imageCompletableFuture.join();
+        ImgSrv imgSrv = new ImgSrv();
+
+        for (int i = 0; i < NUM_THREADS; i++) {
+            tasks.add(imgSrv.new SubImageFilter(specificDataList.get(i)));
+            tasks.get(i).start();
+        }
+
+        for (int i = 0; i < NUM_THREADS; i++) {
+            try {
+                tasks.get(i).join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @TearDown(Level.Invocation)
@@ -94,5 +106,6 @@ public class PerformanceTest {
         assertEquals(input.height, output.height);
         assertEquals(result, output);
     }
+
 
 }
