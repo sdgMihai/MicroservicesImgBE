@@ -34,8 +34,8 @@ public class SpringAsyncConfig implements AsyncConfigurer {
     @Override
     public Executor getAsyncExecutor() {
         ThreadPoolTaskExecutor scheduler = new ThreadPoolTaskExecutor();
-        scheduler.setCorePoolSize(parallelism);
-        scheduler.setMaxPoolSize(parallelism);
+        scheduler.setCorePoolSize(req_parallel);
+        scheduler.setMaxPoolSize(req_parallel);
         scheduler.setThreadNamePrefix("ResourceAsyncThread-");
         scheduler.initialize();
         log.debug("\n\n\nscheduler thread name prefix:" + scheduler.getThreadNamePrefix());
@@ -63,9 +63,9 @@ public class SpringAsyncConfig implements AsyncConfigurer {
     public Executor taskExecutorF() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 //        int numOfCores = Runtime.getRuntime().availableProcessors();
-        log.info("number of threads: " + (parallelism + 3));
-        executor.setCorePoolSize(parallelism + 3);
-        executor.setMaxPoolSize(parallelism + 3);
+        log.info("number of threads: " + (req_parallel));
+        executor.setCorePoolSize(req_parallel * 2);
+        executor.setMaxPoolSize(req_parallel * 2);
         executor.setQueueCapacity(500);
         executor.setThreadNamePrefix("execFilter-");
         executor.setKeepAliveSeconds(200);

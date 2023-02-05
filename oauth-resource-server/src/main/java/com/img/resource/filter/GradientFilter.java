@@ -51,7 +51,7 @@ public class GradientFilter implements Filter {
 
         this.thetaHeight = in.height;
         this.thetaWidth = in.width;
-        System.out.println("within gradient");
+        log.debug("within gradient");
         log.debug("Running: " + Thread.currentThread().getId() + " | " + new Date());
 
         // ph1
@@ -82,7 +82,7 @@ public class GradientFilter implements Filter {
          Stream.of(partialFilters2)
                 .map(CompletableFuture::join)
                         .forEach((Void) -> {
-                            System.out.println("finish ph2");
+                            log.debug("finish ph2");
                         });
         log.debug("scheduler queue:"+ ((ThreadPoolTaskExecutor)executor).getQueueSize());
         log.debug("active bf grad phase 2:" + ((ThreadPoolTaskExecutor)executor).getActiveCount());
@@ -154,7 +154,7 @@ public class GradientFilter implements Filter {
                 newImage.matrix[i][j] = new Pixel((char) gray, (char) gray, (char) gray, image.matrix[i][j].a);
             }
         }
-        System.out.println("Running: " + Thread.currentThread().getId() + " | " + new Date());
+        log.debug("Running: " + Thread.currentThread().getId() + " | " + new Date());
         log.debug("prepare finish grad phase 2");
     }
 }
