@@ -30,7 +30,7 @@ public class SepiaFilter extends AbstractFilter {
                 newPixel.b = (char) (Math.min(tempColor, 255));
 
 
-                newImage.matrix[i][j] = newPixel;
+                newImage.matrix[i][j].update(newPixel.r, newPixel.g, newPixel.b, newPixel.a);
             }
         }
     }

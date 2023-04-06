@@ -24,13 +24,13 @@ public class EdgeTrackingFilter extends AbstractFilter {
                             image.matrix[i][j + 1].r == strong || image.matrix[i + 1][j - 1].r == strong ||
                             image.matrix[i + 1][j].r == strong || image.matrix[i + 1][j + 1].r == strong) {
 
-                        newImage.matrix[i][j] = new Pixel((char) strong, (char) strong, (char) strong, image.matrix[i][j].a);
+                        newImage.matrix[i][j].update((char) strong, (char) strong, (char) strong, image.matrix[i][j].a);
                     } else {
-                        newImage.matrix[i][j] = new Pixel((char) 0, (char) 0, (char) 0, image.matrix[i][j].a);
+                        newImage.matrix[i][j].update((char) 0, (char) 0, (char) 0, image.matrix[i][j].a);
                     }
                 } else {
                     Pixel tmp = image.matrix[i][j];
-                    newImage.matrix[i][j] = new Pixel(tmp.r, tmp.g, tmp.b, tmp.a);
+                    newImage.matrix[i][j].update(tmp.r, tmp.g, tmp.b, tmp.a);
                 }
             }
         }

@@ -40,7 +40,7 @@ public class GaussianBlurFilter extends AbstractFilter {
                 newPixel.r = (char) ((red > 255) ? 255 : red);
                 newPixel.g = (char) ((green > 255) ? 255 : green);
                 newPixel.b = (char) ((blue > 255) ? 255 : blue);
-                newImage.matrix[i][j] = newPixel;
+                newImage.matrix[i][j].update(newPixel.r, newPixel.g, newPixel.b, newPixel.a);
             }
         }
     }

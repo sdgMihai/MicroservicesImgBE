@@ -151,7 +151,7 @@ public class GradientFilter implements Filter {
                 gray = (gray / gMax) * 255;
                 gray = (gray < 0) ? 0 : gray;
                 gray = (gray > 255) ? 255 : gray;
-                newImage.matrix[i][j] = new Pixel((char) gray, (char) gray, (char) gray, image.matrix[i][j].a);
+                newImage.matrix[i][j].update((char) gray, (char) gray, (char) gray, image.matrix[i][j].a);
             }
         }
         log.debug("Running: " + Thread.currentThread().getId() + " | " + new Date());

@@ -18,11 +18,11 @@ public class BlackWhiteFilter extends AbstractFilter{
                         0.7152 * image.matrix[i][j].g +
                         0.0722 * image.matrix[i][j].b);
                 gray = Math.min(gray, 255);
-                newImage.matrix[i][j] = new Pixel((char) gray, (char) gray, (char) gray, image.matrix[i][j].a);
+                newImage.matrix[i][j].update((char) gray, (char) gray, (char) gray, image.matrix[i][j].a);
             }
         }
         Duration duration = Duration.between(startTime, Instant.now());
-        log.info("time processing " + (stop-start) + " lines of length:" + image.width + " duration:" + duration);
+        log.debug("time processing " + (stop-start) + " lines of length:" + image.width + " duration:" + duration);
         log.debug("bw filter ph1:" + start);
     }
 }

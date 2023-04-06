@@ -84,11 +84,12 @@ public class NonMaximumSuppressionFilter implements Filter {
                 Pixel newPixel = new Pixel();
                 newPixel.a = image.matrix[i][j].a;
                 if (image.matrix[i][j].r >= q && image.matrix[i][j].r >= r) {
-                    newPixel.r = newPixel.g = newPixel.b = image.matrix[i][j].r;
+//                    newPixel.r = newPixel.g = newPixel.b = image.matrix[i][j].r;
+                    newImage.matrix[i][j].update(image.matrix[i][j].r, image.matrix[i][j].r, image.matrix[i][j].r, image.matrix[i][j].a);
                 } else {
                     newPixel.r = newPixel.g = newPixel.b = 0;
+                    newImage.matrix[i][j].update((char) 0, (char) 0, (char) 0, image.matrix[i][j].a);
                 }
-                newImage.matrix[i][j] = newPixel;
             }
         }
     }

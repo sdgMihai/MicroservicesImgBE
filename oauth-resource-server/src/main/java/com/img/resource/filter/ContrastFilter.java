@@ -30,7 +30,6 @@ public class ContrastFilter extends AbstractFilter {
                 Pixel newPixel = new Pixel();
                 float tempColor;
 
-                newPixel.a = image.matrix[i][j].a;
                 tempColor = factor * (image.matrix[i][j].r - 128) + 128;
                 tempColor = (tempColor < 0) ? 0 : tempColor;
                 newPixel.r = (char) ((tempColor > 255) ? 255 : tempColor);
@@ -41,7 +40,7 @@ public class ContrastFilter extends AbstractFilter {
                 tempColor = (tempColor < 0) ? 0 : tempColor;
                 newPixel.b = (char) ((tempColor > 255) ? 255 : tempColor);
 
-                newImage.matrix[i][j] = newPixel;
+                newImage.matrix[i][j].update(newPixel.r, newPixel.g, newPixel.b, image.matrix[i][j].a);
             }
         }
     }

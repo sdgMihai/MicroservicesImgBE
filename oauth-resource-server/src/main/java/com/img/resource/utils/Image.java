@@ -22,13 +22,10 @@ public class Image {
         this.matrix = new Pixel[this.height][this.width];
 
         // bordering with '0' pixel
-        for (int i = 0; i < this.width; ++i) {
-            this.matrix[0][i] = new Pixel((char) 0, (char) 0, (char) 0, (char) 0);
-            this.matrix[this.height - 1][i] = new Pixel((char) 0, (char) 0, (char) 0, (char) 0);
-        }
         for (int i = 0; i < this.height; ++i) {
-            this.matrix[i][0] = new Pixel((char) 0, (char) 0, (char) 0, (char) 0);
-            this.matrix[i][this.width - 1] = new Pixel((char) 0, (char) 0, (char) 0, (char) 0);
+            for (int j = 0; j < this.width; ++j) {
+                this.matrix[i][j] = new Pixel();
+            }
         }
 
     }

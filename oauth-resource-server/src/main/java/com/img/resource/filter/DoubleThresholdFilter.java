@@ -78,11 +78,11 @@ public class DoubleThresholdFilter implements Filter{
         for (int i = start; i < stop; ++i) {
             for (int j = 1; j < image.width - 1; ++j) {
                 if (image.matrix[i][j].r >= high) {
-                    newImage.matrix[i][j] = new Pixel((char) 255, (char) 255, (char) 255, image.matrix[i][j].a);
+                    newImage.matrix[i][j].update((char) 255, (char) 255, (char) 255, image.matrix[i][j].a);
                 } else {
                     if (image.matrix[i][j].r >= low) {
-                        newImage.matrix[i][j] = new Pixel((char) 100, (char) 100, (char) 100, image.matrix[i][j].a);
-                    } else newImage.matrix[i][j] = new Pixel((char) 0, (char) 0, (char) 0, image.matrix[i][j].a);
+                        newImage.matrix[i][j].update((char) 100, (char) 100, (char) 100, image.matrix[i][j].a);
+                    } else newImage.matrix[i][j].update((char) 0, (char) 0, (char) 0, image.matrix[i][j].a);
                 }
             }
         }

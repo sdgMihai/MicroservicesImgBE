@@ -15,7 +15,7 @@ public class DummyFilter extends AbstractFilter {
         for (int i = start; i < stop; ++i) {
             for (int j = 0; j < image.width - 1; ++j) {
                 Pixel tmp = image.matrix[i][j];
-                newImage.matrix[i][j] = new Pixel(tmp.r,tmp.g,tmp.b,tmp.a);
+                newImage.matrix[i][j].update(tmp.r,tmp.g,tmp.b,tmp.a);
             }
         }
     }

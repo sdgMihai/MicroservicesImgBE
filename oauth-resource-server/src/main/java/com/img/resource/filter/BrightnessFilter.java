@@ -20,7 +20,7 @@ public class BrightnessFilter extends AbstractFilter {
     public void applyFilterPh1(Image image, Image newImage, int start, int stop) {
         for (int i = start; i < stop; ++i) {
             for (int j = 1; j < image.width - 1; ++j) {
-                newImage.matrix[i][j] = new Pixel(
+                newImage.matrix[i][j].update(
                         (char) (image.matrix[i][j].r * this.brightness),
                         (char) (image.matrix[i][j].g * this.brightness),
                         (char) (image.matrix[i][j].b * this.brightness),

@@ -30,6 +30,14 @@ public class Pixel {
         this.a = a;
     }
 
+    public void update(char r, char g, char b, char a) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.a = a;
+    }
+
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

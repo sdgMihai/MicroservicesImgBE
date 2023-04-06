@@ -18,10 +18,8 @@ public class SharpenFilter extends AbstractFilter {
 
         for (int i = start; i < stop; ++i) {
             for (int j = 1; j < image.width - 1; ++j) {
-                Pixel newPixel = new Pixel();
                 float red, green, blue;
                 red = green = blue = 0;
-                newPixel.a = image.matrix[i][j].a;
 
                 for (int ki = -1; ki <= 1; ++ki) {
                     for (int kj = -1; kj <= 1; ++kj) {
@@ -33,10 +31,10 @@ public class SharpenFilter extends AbstractFilter {
                 red = (red < 0) ? 0 : red;
                 green = (green < 0) ? 0 : green;
                 blue = (blue < 0) ? 0 : blue;
-                newPixel.r = (char)((red > 255) ? 255 : red);
-                newPixel.g = (char)((green > 255) ? 255 : green);
-                newPixel.b = (char)((blue > 255) ? 255 : blue);
-                newImage.matrix[i][j] = newPixel;
+                newImage.matrix[i][j].r = (char)((red > 255) ? 255 : red);
+                newImage.matrix[i][j].g = (char)((green > 255) ? 255 : green);
+                newImage.matrix[i][j].b = (char)((blue > 255) ? 255 : blue);
+                newImage.matrix[i][j].a = image.matrix[i][j].a;
             }
         }
     }

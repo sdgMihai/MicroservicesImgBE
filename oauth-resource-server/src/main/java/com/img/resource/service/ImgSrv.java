@@ -56,7 +56,7 @@ public class ImgSrv {
                 .accept(filters, new ThreadSpecificData(PARALLELISM, image, newImage, executor));
         Duration filterDuration = Duration.between(start, Instant.now());
         log.debug("active threads after applying Filter in ImgSrv: " + ((ThreadPoolTaskExecutor)executor).getActiveCount());
-        log.info("took filter s:"+ filterDuration.getSeconds());
+        log.debug("took filter s:"+ filterDuration.getSeconds());
         return CompletableFuture.completedFuture(newImage);
     }
 

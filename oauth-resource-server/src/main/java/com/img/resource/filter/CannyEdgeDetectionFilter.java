@@ -23,6 +23,7 @@ public class CannyEdgeDetectionFilter implements Filter {
     public void applyFilter(Image image, Image newImage, int PARALLELISM, final Executor executor) {
 
         BlackWhiteFilter step1 = new BlackWhiteFilter();
+
         step1.applyFilter(image, newImage, PARALLELISM, executor);
         log.debug("bw filter done");
         log.debug("using executor: " + executor.toString());
@@ -76,7 +77,7 @@ public class CannyEdgeDetectionFilter implements Filter {
             newImage.matrix[i] = swp;
             for (int j = 1; j < image.width - 1; ++j) {
                 if (newImage.matrix[i][j].r < 100) {
-                    newImage.matrix[i][j] = new Pixel((char) 0, (char) 0, (char) 0, newImage.matrix[i][j].a);
+                    newImage.matrix[i][j].update((char) 0, (char) 0, (char) 0, newImage.matrix[i][j].a);
                 }
             }
         }
